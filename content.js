@@ -17,6 +17,8 @@
  * @function insertInGlobalActionsUl - Inserts button into Lightning global actions
  * @function insertFloatingButton - Creates floating button as fallback
  * @function tryInsert - Main insertion logic with fallback strategy
+ * @function getTranslation - Gets translated text based on browser language
+ * @function detectLanguage - Detects user's browser language
  *
  * @listens DOM mutations via MutationObserver
  * @sends chrome.runtime.sendMessage with type "openSharing" and sharing URL
@@ -25,6 +27,34 @@
   const LI_ID = "gpt-sf-sharing-li"; // ID for the <li> element in the global actions menu
   const BTN_ID = "gpt-sf-sharing-btn"; // ID for the button in the global actions menu
   const BTN_FLOAT_ID = "gpt-sf-sharing-float"; // ID for the floating button
+
+  /**
+   * @description Detects the user's browser language and returns the appropriate language code
+   * @returns {string} The language code (defaults to 'en' if not supported)
+   */
+  function detectLanguage() {
+    const browserLang = navigator.language || navigator.userLanguage || 'en';
+    const langCode = browserLang.split('-')[0].toLowerCase(); // Get primary language code
+
+    // Check if we have translations for this language
+    if (window.sfSharingTranslations && window.sfSharingTranslations[langCode]) {
+      return langCode;
+    }
+
+    // Fallback to English if language not supported
+    return 'en';
+  }
+
+  /**
+   * @description Gets translated text for the specified key based on user's browser language
+   * @param {string} key - The translation key
+   * @returns {string} The translated text
+   */
+  function getTranslation(key) {
+    const lang = detectLanguage();
+    const translations = window.sfSharingTranslations || {};
+    return translations[lang]?.[key] || translations['en']?.[key] || key;
+  }
 
   /**
    * @description Validates Salesforce record IDs (15 or 18 characters)
@@ -100,8 +130,8 @@
   function buildButton() {
     const btn = document.createElement("button"); // Create a button element
     btn.id = BTN_ID; // Set the ID of the button
-    btn.textContent = "Sharing"; // Set the text content of the button
-    btn.title = "Open Sharing Detail for this record"; // Set the title of the button
+    btn.textContent = getTranslation("buttonText"); // Set the text content of the button
+    btn.title = getTranslation("buttonTitle"); // Set the title of the button
     // Prefer SLDS button classes to blend with header
     btn.className = "slds-button slds-button_neutral"; // Set the class of the button
     btn.style.cssText = [
@@ -113,7 +143,7 @@
     btn.addEventListener("click", () => { // Add a click event listener to the button
       const recordId = extractRecordId(); // Get the record ID
       if (!recordId) { // If no record ID is found, show an alert
-        alert("Could not detect a Record Id on this page. Open a record detail page and try again.");
+        alert(getTranslation("errorNoRecordId"));
         return;
       }
       const url = `${location.origin}/p/share/CustomObjectSharingDetail?parentId=${recordId}`; // Create the sharing URL
@@ -157,8 +187,8 @@
     if (document.getElementById(BTN_ID) || document.getElementById(BTN_FLOAT_ID)) return; // If the button already exists, return
     const btn = document.createElement("button"); // Create a button element
     btn.id = BTN_FLOAT_ID; // Set the ID of the button
-    btn.textContent = "Sharing"; // Set the text content of the button
-    btn.title = "Open Sharing Detail for this record"; // Set the title of the button
+    btn.textContent = getTranslation("buttonText"); // Set the text content of the button
+    btn.title = getTranslation("buttonTitle"); // Set the title of the button
     btn.style.cssText = [
       "position:fixed", // Set the position of the button
       "top:8px", // Set the top position of the button
@@ -175,7 +205,7 @@
     btn.addEventListener("click", () => { // Add a click event listener to the button
       const recordId = extractRecordId(); // Get the record ID
       if (!recordId) { // If no record ID is found, show an alert
-        alert("Could not detect a Record Id on this page. Open a record detail page and try again.");
+        alert(getTranslation("errorNoRecordId"));
         return;
       }
       const url = `${location.origin}/p/share/CustomObjectSharingDetail?parentId=${recordId}`; // Create the sharing URL

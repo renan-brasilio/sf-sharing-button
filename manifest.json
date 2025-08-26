@@ -26,6 +26,7 @@
         "*://*.salesforce.com/*"
       ],
       "js": [
+        "translations.js",
         "content.js"
       ],
       "run_at": "document_idle"
