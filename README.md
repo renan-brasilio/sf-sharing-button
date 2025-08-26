@@ -20,13 +20,6 @@ A Chrome extension that adds a convenient "Sharing" button to Salesforce Lightni
 4. Click "Load unpacked" and select the extension directory
 5. The extension will be installed and ready to use
 
-### Files Included
-
-- `manifest.json` - Extension configuration and permissions
-- `background.js` - Background script for handling tab creation
-- `content.js` - Content script that injects the sharing button
-- `icons/icon128.png` - Extension icon
-
 ## Usage
 
 1. Navigate to any Salesforce Lightning record detail page

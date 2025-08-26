@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "description": "Adds a 'Sharing' button next to the global actions on Salesforce pages that opens Classic Sharing Detail for the current record.",
   "icons": {
-    "128": "icons/icon128.png"
+    "128": "icons/icon128v2.png"
   },
   "permissions": [
     "tabs"
