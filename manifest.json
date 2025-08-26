@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Salesforce Open Sharing Detail",
   "version": "1.0.0",
-  "description": "Adds a 'Share' button next to the global search on Salesforce pages that opens Classic Sharing Detail for the current record.",
+  "description": "Adds a 'Sharing' button next to the global actions on Salesforce pages that opens Classic Sharing Detail for the current record.",
   "icons": {
     "128": "icons/icon128.png"
   },
