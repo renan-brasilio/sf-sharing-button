@@ -12,5 +12,5 @@ node_modules
 **/.DS_Store
 *.DS_Store
 
-# Icons
-icons/.DS_Store
+# Images
+images/.DS_Store
