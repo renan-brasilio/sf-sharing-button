@@ -1,4 +1,4 @@
-# Salesforce - Classic Sharing Detail
+# Sharing Button for Salesforce
 
 A Chrome extension that adds a convenient "Sharing" button to Salesforce Lightning and Classic pages, providing quick access to record sharing details without navigating through multiple menus.
 

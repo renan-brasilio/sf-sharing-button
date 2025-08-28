@@ -9,4 +9,8 @@ node_modules
 
 # MacOS
 .DS_Store
-/icons/.DS_Store
+**/.DS_Store
+*.DS_Store
+
+# Icons
+icons/.DS_Store
