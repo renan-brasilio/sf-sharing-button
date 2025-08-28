@@ -22,7 +22,7 @@ The sharing functionality requires that the Salesforce object be set to **Privat
 - **Dual Interface Support**: Works on both Lightning and Classic Salesforce pages
 - **Context-Aware Styling**: Automatically adapts button appearance to match the current interface
 
-![til](./app/assets/images/button_presentation.gif)
+![til](https://github.com/renan-brasilio/sf-sharing-button/blob/main/images/button_presentation.gif)
 
 ## Installation
 
