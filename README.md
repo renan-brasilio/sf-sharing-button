@@ -105,10 +105,15 @@ The extension supports multiple languages through the browser's `navigator.langu
 - **Google Languages Compatible**: In theory, any language supported by Google Chrome's `navigator.language` is supported here
 - **Easy Extension**: New languages can be added by updating the `translations.js` file
 
-#### Current Reviewed Languages
+#### Current Supported Languages
+The extension dynamically loads all available languages from the `translations.js` file. Currently supported languages include:
+
 - **English** (en) - Primary language
 - **Portuguese** (pt) - Translated by the developer
 - **French** (fr) - Translated by the developer
+- **Spanish** (es), **German** (de), **Italian** (it), **Japanese** (ja), **Korean** (ko), **Chinese** (zh), **Russian** (ru), **Arabic** (ar), **Hindi** (hi), **Dutch** (nl), **Swedish** (sv), **Danish** (da), **Finnish** (fi), **Polish** (pl), **Turkish** (tr), **Hebrew** (he)
+
+*Note: The language dropdown in settings is automatically populated from the translations file, so adding new languages to `translations.js` will immediately make them available in the settings.*
 
 #### Translation Credits
 I speak only Portuguese, English and a bit of French, the others were created with the help of ChatGPT. While efforts were made to ensure accuracy, there may be translation errors or areas for improvement.
@@ -122,6 +127,17 @@ If you notice any translation errors or would like to add support for a new lang
 4. **Follow Format**: Use the existing structure in `translations.js` for consistency
 
 **Note**: Since the extension uses the browser's language detection, any language supported by Chrome should theoretically work once added to the translations file.
+
+#### Language Settings
+Users can configure their language preference through the extension's settings page:
+
+1. **Access Settings**: Right-click the extension icon and select "Options" or go to `chrome://extensions/` and click "Extension options"
+2. **Language Mode**: Choose between:
+   - **Auto**: Uses your browser's default language (recommended)
+   - **Manual**: Select a specific language from the dropdown
+3. **Save Changes**: Click "Save Settings" to apply your preferences
+
+The settings are automatically synchronized across all your Chrome instances and will be applied immediately to all active Salesforce tabs.
 
 ### URL Patterns Supported
 

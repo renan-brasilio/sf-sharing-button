@@ -28,13 +28,14 @@
   const BTN_ID = "gpt-sf-sharing-btn"; // ID for the button in the global actions menu
   const BTN_FLOAT_ID = "gpt-sf-sharing-float"; // ID for the floating button
 
-  /**
-   * @description Detects the user's browser language and returns the appropriate language code
+    /**
+   * @description Detects the user's language preference and returns the appropriate language code
    * @returns {string} The language code (defaults to 'en' if not supported)
    */
   function detectLanguage() {
+    // Default to browser language detection
     const browserLang = navigator.language || navigator.userLanguage || 'en';
-    const langCode = browserLang.split('-')[0].toLowerCase(); // Get primary language code
+    let langCode = browserLang.split('-')[0].toLowerCase(); // Get primary language code
 
     // Check if we have translations for this language
     if (window.sfSharingTranslations && window.sfSharingTranslations[langCode]) {
@@ -46,12 +47,59 @@
   }
 
   /**
-   * @description Gets translated text for the specified key based on user's browser language
+   * @description Gets the user's preferred language from settings or browser
+   * @returns {Promise<string>} Promise that resolves to the language code
+   */
+  function getPreferredLanguage() {
+    return new Promise((resolve) => {
+      try {
+        chrome.storage.sync.get({
+          languageMode: 'auto',
+          selectedLanguage: 'en'
+        }, function(items) {
+          let langCode;
+
+          if (items.languageMode === 'manual') {
+            langCode = items.selectedLanguage;
+          } else {
+            // Auto mode - use browser language
+            const browserLang = navigator.language || navigator.userLanguage || 'en';
+            langCode = browserLang.split('-')[0].toLowerCase();
+          }
+
+          // Check if we have translations for this language
+          if (window.sfSharingTranslations && window.sfSharingTranslations[langCode]) {
+            resolve(langCode);
+          } else {
+            resolve('en'); // Fallback to English
+          }
+        });
+      } catch (e) {
+        // If storage is not available, fall back to browser language detection
+        resolve(detectLanguage());
+      }
+    });
+  }
+
+  /**
+   * @description Gets translated text for the specified key based on user's preferred language
    * @param {string} key - The translation key
    * @returns {string} The translated text
    */
   function getTranslation(key) {
+    // Use synchronous fallback for immediate access
     const lang = detectLanguage();
+    const translations = window.sfSharingTranslations || {};
+    return translations[lang]?.[key] || translations['en']?.[key] || key;
+  }
+
+  /**
+   * @description Gets translated text with async language preference support
+   * @param {string} key - The translation key
+   * @returns {Promise<string>} Promise that resolves to the translated text
+   */
+  async function getTranslationAsync(key) {
+    const lang = await getPreferredLanguage();
     const translations = window.sfSharingTranslations || {};
     return translations[lang]?.[key] || translations['en']?.[key] || key;
   }
@@ -316,4 +364,20 @@
     }
   });
   observer.observe(document.documentElement, { childList: true, subtree: true }); // Observe the document for changes
+
+  /**
+   * @description Listen for settings updates from the options page
+   */
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type === 'settingsUpdated') {
+      // Refresh the button to apply new language settings
+      const existingButton = document.getElementById(BTN_ID) || document.getElementById(BTN_FLOAT_ID);
+      if (existingButton) {
+        existingButton.remove();
+        setTimeout(() => {
+          tryInsert();
+        }, 100);
+      }
+    }
+  });
 })();

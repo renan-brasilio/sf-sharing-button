@@ -6,3 +6,7 @@ node_modules
 
 # VSCode
 .vscode
+
+# MacOS
+.DS_Store
+/icons/.DS_Store

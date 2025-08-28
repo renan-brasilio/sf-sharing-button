@@ -1,13 +1,14 @@
 {
   "manifest_version": 3,
   "name": "Salesforce - Classic Sharing Detail",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "Adds a 'Sharing' button next to the global actions on Salesforce pages that opens Classic Sharing Detail for the current record.",
   "icons": {
-    "128": "icons/icon128v2.png"
+    "128": "icons/logo.png"
   },
   "permissions": [
-    "tabs"
+    "tabs",
+    "storage"
   ],
   "host_permissions": [
     "*://*.lightning.force.com/*",
@@ -18,6 +19,7 @@
   "background": {
     "service_worker": "background.js"
   },
+  "options_page": "options.html",
   "content_scripts": [
     {
       "matches": [
