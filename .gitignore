@@ -1,0 +1,8 @@
+# Salesforce DX
+/.sfdx
+
+# Node
+node_modules
+
+# VSCode
+.vscode

@@ -77,7 +77,9 @@
       /\/lightning\/r\/[^/]+\/([a-zA-Z0-9]{15,18})\//, // /lightning/r/Object/ID/view
       /\/lightning\/r\/([a-zA-Z0-9]{15,18})\//,        // /lightning/r/ID/view
       /\/sObject\/([a-zA-Z0-9]{15,18})\//,            // /sObject/ID/view (console)
-      /\/r\/[^/]+\/([a-zA-Z0-9]{15,18})\//            // /r/Object/ID/view (console)
+      /\/r\/[^/]+\/([a-zA-Z0-9]{15,18})\//,           // /r/Object/ID/view (console)
+      /\/([a-zA-Z0-9]{15,18})$/,                      // /ID (classic pages like my.salesforce.com/a0p5w000005tyFK)
+      /\/([a-zA-Z0-9]{15,18})\//                       // /ID/ (classic pages with trailing slash)
     ];
 
     for (const re of patterns) {
@@ -132,14 +134,37 @@
     btn.id = BTN_ID; // Set the ID of the button
     btn.textContent = getTranslation("buttonText"); // Set the text content of the button
     btn.title = getTranslation("buttonTitle"); // Set the title of the button
-    // Prefer SLDS button classes to blend with header
-    btn.className = "slds-button slds-button_neutral"; // Set the class of the button
-    btn.style.cssText = [
-      "padding:4px 10px", // Set the padding of the button
-      "height:28px", // Set the height of the button
-      "line-height:20px", // Set the line height of the button
-      "cursor:pointer" // Set the cursor of the button
-    ].join(";");
+
+    // Check if we're on a classic Salesforce page
+    const isClassicPage = window.location.hostname.includes('my.salesforce.com');
+
+    if (isClassicPage) {
+      // Classic button styling
+      btn.className = ""; // Remove SLDS classes for classic styling
+      btn.style.cssText = [
+        "font-weight:700", // Bold font weight
+        "font-size:smaller", // Smaller font size
+        "display:inline-block", // Inline block display
+        "color:var(--slds-c-button-text-color, var(--sds-c-button-text-color, var(--lwc-brandAccessible,rgba(180, 29, 24, 1))))", // Blue color
+        "padding:4px", // Padding
+        "border-width:1px", // Border width
+        "border-style:solid", // Border style
+        "border-color:rgb(0, 151, 207)", // Blue border
+        "border-radius:7px", // Rounded corners
+        "cursor:pointer", // Set the cursor of the button
+        "margin-left:5px" // Left margin
+      ].join(";");
+    } else {
+      // Lightning button styling (existing)
+      btn.className = "slds-button slds-button_neutral"; // Set the class of the button
+      btn.style.cssText = [
+        "padding:4px 10px", // Set the padding of the button
+        "height:28px", // Set the height of the button
+        "line-height:20px", // Set the line height of the button
+        "cursor:pointer" // Set the cursor of the button
+      ].join(";");
+    }
+
     btn.addEventListener("click", () => { // Add a click event listener to the button
       const recordId = extractRecordId(); // Get the record ID
       if (!recordId) { // If no record ID is found, show an alert
@@ -181,6 +206,29 @@
   }
 
   /**
+   * @description Inserts the sharing button into classic Salesforce pages (my.salesforce.com)
+   * @returns {boolean} True if the button was inserted, false if it already exists
+   */
+  function insertInClassicPage() {
+    if (document.getElementById(LI_ID) || document.getElementById(BTN_ID)) return true; // If the button already exists, return true
+
+    // Look for the linkElements div in classic pages
+    const linkElementsDiv = document.querySelector("div.linkElements");
+    if (!linkElementsDiv) return false; // If no linkElements div is found, return false
+
+    const btn = buildButton(); // Build the button
+    btn.id = BTN_ID; // Set the ID of the button
+
+    // Insert the button as the first element in the linkElements div
+    if (linkElementsDiv.firstChild) {
+      linkElementsDiv.insertBefore(btn, linkElementsDiv.firstChild);
+    } else {
+      linkElementsDiv.appendChild(btn);
+    }
+    return true;
+  }
+
+  /**
    * @description Inserts the sharing button as a floating button
    */
   function insertFloatingButton() {
@@ -214,14 +262,34 @@
     document.body.appendChild(btn); // Append the button to the body
   }
 
-  /**
+    /**
    * @description Main insertion logic with fallback strategy
    */
   function tryInsert() {
-    if (!insertInGlobalActionsUl()) { // If the button was not inserted into the global actions menu
-      setTimeout(() => { // Wait for 1.5 seconds
-        if (!insertInGlobalActionsUl()) insertFloatingButton(); // If the button was not inserted into the global actions menu, insert the floating button
-      }, 1500);
+    // Check if we're on a classic Salesforce page (my.salesforce.com)
+    const isClassicPage = window.location.hostname.includes('my.salesforce.com');
+
+    if (isClassicPage) {
+      // For classic pages, check if there's a valid Salesforce ID first
+      const recordId = extractRecordId();
+      if (!recordId) {
+        // No valid Salesforce ID found, don't show the button
+        return;
+      }
+
+      // For classic pages, try to insert into linkElements div first
+      if (!insertInClassicPage()) {
+        setTimeout(() => {
+          if (!insertInClassicPage()) insertFloatingButton();
+        }, 1500);
+      }
+    } else {
+      // For Lightning pages, use the existing logic
+      if (!insertInGlobalActionsUl()) {
+        setTimeout(() => {
+          if (!insertInGlobalActionsUl()) insertFloatingButton();
+        }, 1500);
+      }
     }
   }
 
@@ -231,7 +299,7 @@
    * @description MutationObserver to handle dynamic page changes
    */
   const observer = new MutationObserver(() => {
-    if (!document.getElementById(LI_ID) && !document.getElementById(BTN_FLOAT_ID)) { // If the button was not inserted into the global actions menu and the floating button does not exist
+    if (!document.getElementById(LI_ID) && !document.getElementById(BTN_ID) && !document.getElementById(BTN_FLOAT_ID)) { // If no button exists
       tryInsert(); // Try to insert the button
     }
   });
