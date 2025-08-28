@@ -10,25 +10,36 @@
  * It uses a MutationObserver to handle dynamic page changes and re-insert the button
  * when needed.
  *
+ * @function detectLanguage - Detects user's browser language
+ * @function getPreferredLanguage - Gets user's preferred language from settings or browser
+ * @function getTranslation - Gets translated text based on browser language
+ * @function getTranslationAsync - Gets translated text with async language preference support
  * @function isValidSfId - Validates Salesforce record IDs (15 or 18 characters)
  * @function extractRecordId - Extracts record ID from URL patterns or data attributes
  * @function deepQuerySelector - Searches through shadow DOM for elements
  * @function buildButton - Creates the sharing button with click handler
  * @function insertInGlobalActionsUl - Inserts button into Lightning global actions
+ * @function insertInClassicPage - Inserts button into classic Salesforce pages (my.salesforce.com)
  * @function insertFloatingButton - Creates floating button as fallback
  * @function tryInsert - Main insertion logic with fallback strategy
- * @function getTranslation - Gets translated text based on browser language
- * @function detectLanguage - Detects user's browser language
+ * @function checkUrlChange - Checks for URL changes and re-inserts the button if needed
  *
  * @listens DOM mutations via MutationObserver
  * @sends chrome.runtime.sendMessage with type "openSharing" and sharing URL
  */
+
 (function () {
+
+
+
+  // We'll check page relevance inside tryInsert() instead of here
+  // This allows the script to run and handle navigation changes
+
   const LI_ID = "gpt-sf-sharing-li"; // ID for the <li> element in the global actions menu
   const BTN_ID = "gpt-sf-sharing-btn"; // ID for the button in the global actions menu
   const BTN_FLOAT_ID = "gpt-sf-sharing-float"; // ID for the floating button
 
-    /**
+  /**
    * @description Detects the user's language preference and returns the appropriate language code
    * @returns {string} The language code (defaults to 'en' if not supported)
    */
@@ -89,17 +100,6 @@
   function getTranslation(key) {
     // Use synchronous fallback for immediate access
     const lang = detectLanguage();
-    const translations = window.sfSharingTranslations || {};
-    return translations[lang]?.[key] || translations['en']?.[key] || key;
-  }
-
-  /**
-   * @description Gets translated text with async language preference support
-   * @param {string} key - The translation key
-   * @returns {Promise<string>} Promise that resolves to the translated text
-   */
-  async function getTranslationAsync(key) {
-    const lang = await getPreferredLanguage();
     const translations = window.sfSharingTranslations || {};
     return translations[lang]?.[key] || translations['en']?.[key] || key;
   }
@@ -264,11 +264,16 @@
    * @returns {boolean} True if the button was inserted, false if it already exists
    */
   function insertInClassicPage() {
-    if (document.getElementById(LI_ID) || document.getElementById(BTN_ID)) return true; // If the button already exists, return true
+    if (document.getElementById(LI_ID) || document.getElementById(BTN_ID)) {
+      return true; // If the button already exists, return true
+    }
 
     // Look for the linkElements div in classic pages
     const linkElementsDiv = document.querySelector("div.linkElements");
-    if (!linkElementsDiv) return false; // If no linkElements div is found, return false
+
+    if (!linkElementsDiv) {
+      return false; // If no linkElements div is found, return false
+    }
 
     const btn = buildButton(); // Build the button
     btn.id = BTN_ID; // Set the ID of the button
@@ -279,6 +284,7 @@
     } else {
       linkElementsDiv.appendChild(btn);
     }
+
     return true;
   }
 
@@ -322,32 +328,60 @@
     document.body.appendChild(btn); // Append the button to the body
   }
 
-    /**
+  /**
    * @description Main insertion logic with fallback strategy
    */
   function tryInsert() {
+    // Check if this is a relevant Salesforce page
+    const url = window.location.href;
+    const hostname = window.location.hostname;
+
+    // For Lightning pages, check if it's a record page
+    if (hostname.includes('lightning.force.com')) {
+      // Only show on record detail pages (/lightning/r/...)
+      // NOT on object list pages (/lightning/o/.../list)
+      const isRecordPage = url.includes('/lightning/r/');
+
+      if (!isRecordPage) {
+        return;
+      }
+    }
+
+    // For Classic pages, check if it's a record page
+    if (hostname.includes('my.salesforce.com')) {
+      const isRecordPage = /\/[a-zA-Z0-9]{15,18}$/.test(url) ||
+                          /\/[a-zA-Z0-9]{15,18}\//.test(url);
+
+      if (!isRecordPage) {
+        return;
+      }
+    }
+
     // Check if we're on a classic Salesforce page (my.salesforce.com)
     const isClassicPage = window.location.hostname.includes('my.salesforce.com');
+    const recordId = extractRecordId();
 
     if (isClassicPage) {
       // For classic pages, check if there's a valid Salesforce ID first
-      const recordId = extractRecordId();
       if (!recordId) {
-        // No valid Salesforce ID found, don't show the button
         return;
       }
 
       // For classic pages, try to insert into linkElements div first
       if (!insertInClassicPage()) {
         setTimeout(() => {
-          if (!insertInClassicPage()) insertFloatingButton();
+          if (!insertInClassicPage()) {
+            insertFloatingButton();
+          }
         }, 1500);
       }
     } else {
       // For Lightning pages, use the existing logic
       if (!insertInGlobalActionsUl()) {
         setTimeout(() => {
-          if (!insertInGlobalActionsUl()) insertFloatingButton();
+          if (!insertInGlobalActionsUl()) {
+            insertFloatingButton();
+          }
         }, 1500);
       }
     }
@@ -355,15 +389,119 @@
 
   tryInsert();
 
+  // Track current URL to detect navigation changes
+  let currentUrl = window.location.href;
+  let lastRecordId = null;
+
+  /**
+   * @description Check if URL has changed and re-insert button if needed
+   */
+  function checkUrlChange() {
+    const newUrl = window.location.href;
+    const newRecordId = extractRecordId();
+
+    // Check if URL changed or record ID changed (for same-page navigation)
+    if (newUrl !== currentUrl || newRecordId !== lastRecordId) {
+
+      currentUrl = newUrl;
+      lastRecordId = newRecordId;
+
+      // Remove existing buttons
+      const existingButtons = [
+        document.getElementById(LI_ID),
+        document.getElementById(BTN_ID),
+        document.getElementById(BTN_FLOAT_ID)
+      ];
+
+      existingButtons.forEach(btn => {
+        if (btn) {
+          btn.remove();
+        }
+      });
+
+      // Try to insert immediately, then retry with delays
+      tryInsert();
+
+      // Retry with increasing delays for dynamic content
+      setTimeout(() => {
+        tryInsert();
+      }, 100);
+      setTimeout(() => {
+        tryInsert();
+      }, 500);
+      setTimeout(() => {
+        tryInsert();
+      }, 1000);
+      setTimeout(() => {
+        tryInsert();
+      }, 2000);
+    }
+  }
+
   /**
    * @description MutationObserver to handle dynamic page changes
    */
-  const observer = new MutationObserver(() => {
-    if (!document.getElementById(LI_ID) && !document.getElementById(BTN_ID) && !document.getElementById(BTN_FLOAT_ID)) { // If no button exists
-      tryInsert(); // Try to insert the button
+  const observer = new MutationObserver((mutations) => {
+    // Check for URL changes
+    checkUrlChange();
+
+    // Check if button was removed or if significant DOM changes occurred
+    const hasButton = document.getElementById(LI_ID) || document.getElementById(BTN_ID) || document.getElementById(BTN_FLOAT_ID);
+    const hasSignificantChanges = mutations.some(mutation =>
+      mutation.type === 'childList' &&
+      (mutation.addedNodes.length > 0 || mutation.removedNodes.length > 0)
+    );
+
+    if (!hasButton || hasSignificantChanges) {
+      // Small delay to let DOM settle
+      setTimeout(() => {
+        if (!document.getElementById(LI_ID) && !document.getElementById(BTN_ID) && !document.getElementById(BTN_FLOAT_ID)) {
+          tryInsert();
+        }
+      }, 50);
     }
   });
-  observer.observe(document.documentElement, { childList: true, subtree: true }); // Observe the document for changes
+
+  // More comprehensive observation
+  observer.observe(document.documentElement, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ['class', 'id', 'data-aura-rendered-by']
+  });
+
+  // Listen for popstate events (back/forward navigation)
+  window.addEventListener('popstate', () => {
+    setTimeout(() => {
+      checkUrlChange();
+    }, 100);
+  });
+
+  // Listen for pushstate/replacestate events (programmatic navigation)
+  const originalPushState = history.pushState;
+  const originalReplaceState = history.replaceState;
+
+  history.pushState = function(...args) {
+    originalPushState.apply(history, args);
+    setTimeout(() => {
+      checkUrlChange();
+    }, 100);
+  };
+
+  history.replaceState = function(...args) {
+    originalReplaceState.apply(history, args);
+    setTimeout(() => {
+      checkUrlChange();
+    }, 100);
+  };
+
+  // Periodic check as fallback (every 2 seconds)
+  setInterval(() => {
+    const hasButton = document.getElementById(LI_ID) || document.getElementById(BTN_ID) || document.getElementById(BTN_FLOAT_ID);
+    if (!hasButton) {
+      tryInsert();
+    }
+  }, 2000);
 
   /**
    * @description Listen for settings updates from the options page
