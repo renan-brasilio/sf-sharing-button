@@ -1,13 +1,12 @@
 {
   "manifest_version": 3,
   "name": "Sharing Button for Salesforce",
-  "version": "1.8.1",
+  "version": "1.8.3",
   "description": "Adds a 'Sharing' button next to the global actions on Salesforce pages that opens Classic Sharing Detail for the current record.",
   "icons": {
     "128": "images/logo.png"
   },
   "permissions": [
-    "tabs",
     "storage"
   ],
   "host_permissions": [
