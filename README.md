@@ -4,6 +4,10 @@ A Chrome extension that adds a convenient "Sharing" button to Salesforce Lightni
 
 The idea originated from: https://chromewebstore.google.com/detail/salesforce-sharing-button/lobdjldobokombkcmnbmhepkllilmmhg, which became unavailable due to security issues on newer versions of Chrome. However, since I didn't have access to the original code, this was recreated from Scratch.
 
+## Available in the Chrome Web Store
+
+https://chromewebstore.google.com/detail/sharing-button-for-salesf/dhkekfkiddkcphagbaokhgngciemmkpi?authuser=0&hl=pt-BR
+
 ## ⚠️ Important Warnings
 
 ### Independent Development
