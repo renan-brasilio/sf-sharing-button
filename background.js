@@ -12,9 +12,28 @@
  * @param {Object} sender - Information about the message sender
  * @param {Function} sendResponse - Callback function to send response back to sender
  */
+function isValidSalesforceUrl(rawUrl) {
+  if (typeof rawUrl !== "string") return false;
+  try {
+    const parsed = new URL(rawUrl);
+    if (parsed.protocol !== "https:") return false;
+    const host = parsed.hostname.toLowerCase();
+    return (
+      host.endsWith(".salesforce.com") ||
+      host.endsWith(".force.com") ||
+      host.endsWith(".visualforce.com")
+    );
+  } catch {
+    return false;
+  }
+}
+
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  if (msg && msg.type === "openSharing" && msg.url) {
+  if (msg && msg.type === "openSharing" && isValidSalesforceUrl(msg.url)) {
     chrome.tabs.create({ url: msg.url });
     sendResponse({ ok: true });
+  } else if (msg && msg.type === "openSharing") {
+    console.warn("Blocked attempt to open non-Salesforce or unsafe URL:", msg.url);
+    sendResponse({ ok: false, error: "Invalid or unauthorized URL" });
   }
 });
